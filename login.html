@@ -36,27 +36,46 @@
   import { auth } from './firebase-config.js';
   import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+  // ── USUARIO LOCAL (sin Firebase) ──────────────────────────
+  const LOCAL_USERS = [
+    { usuario: 'admin', password: '123456', nombre: 'Administrador' }
+  ];
+
   const btnLogin   = document.getElementById('btnLogin');
   const loginError = document.getElementById('loginError');
 
-  // Enter key
   document.getElementById('loginPass').addEventListener('keydown', e => {
     if (e.key === 'Enter') btnLogin.click();
   });
 
   btnLogin.addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass  = document.getElementById('loginPass').value;
+    const emailVal = document.getElementById('loginEmail').value.trim();
+    const passVal  = document.getElementById('loginPass').value;
     loginError.style.display = 'none';
-    if (!email || !pass) {
+
+    if (!emailVal || !passVal) {
       loginError.textContent = 'Por favor completa todos los campos.';
       loginError.style.display = 'block';
       return;
     }
+
     btnLogin.textContent = 'Verificando...';
     btnLogin.disabled = true;
+
+    // 1️⃣ Verificar usuario local primero
+    const localMatch = LOCAL_USERS.find(
+      u => u.usuario === emailVal && u.password === passVal
+    );
+
+    if (localMatch) {
+      sessionStorage.setItem('localUser', JSON.stringify({ nombre: localMatch.nombre, usuario: localMatch.usuario }));
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // 2️⃣ Si no es local, intentar Firebase
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      await signInWithEmailAndPassword(auth, emailVal, passVal);
       window.location.href = 'index.html';
     } catch(e) {
       const msgs = {
@@ -66,7 +85,7 @@
         'auth/invalid-credential': 'Credenciales incorrectas.',
         'auth/too-many-requests':  'Demasiados intentos. Espera un momento.'
       };
-      loginError.textContent = msgs[e.code] || 'Error al iniciar sesión.';
+      loginError.textContent = msgs[e.code] || 'Usuario o contraseña incorrectos.';
       loginError.style.display = 'block';
       btnLogin.textContent = 'Ingresar →';
       btnLogin.disabled = false;
