@@ -6,13 +6,13 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyATai9WFMURB7cSleo1vY8_l6a_VdPmsPo",
-  authDomain: "calidad-2b4a3.firebaseapp.com",
-  projectId: "calidad-2b4a3",
-  storageBucket: "calidad-2b4a3.firebasestorage.app",
-  messagingSenderId: "758661153106",
-  appId: "1:758661153106:web:a9436ce2111e3340a37a8b",
-  measurementId: "G-SS7HVWNMS0"
+  apiKey: "AIzaSyCtIagFFJBFRjvg5usXTm575YqOeeDE1G0",
+  authDomain: "mi-inventario-51f82.firebaseapp.com",
+  projectId: "mi-inventario-51f82",
+  storageBucket: "mi-inventario-51f82.firebasestorage.app",
+  messagingSenderId: "794197755416",
+  appId: "1:794197755416:web:e1bbab46cda2bdbb5da56d",
+  measurementId: "G-P1PRV5HE93"
 };
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
