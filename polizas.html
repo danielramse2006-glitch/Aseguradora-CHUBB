@@ -133,7 +133,27 @@
 
   requireAuth(async (user) => {
     currentUser = user;
-    allPolizas = await getPolizas();
+
+    try {
+      // Timeout de 10s para evitar cuelgue infinito
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Tiempo de espera agotado')), 10000)
+      );
+      allPolizas = await Promise.race([getPolizas(), timeout]);
+    } catch(e) {
+      console.warn('Error cargando pólizas:', e.message);
+      allPolizas = [];
+      document.getElementById('tablaPolizas').innerHTML =
+        `<tr><td colspan="12"><div class="empty-state">
+          <div class="es-icon">⚠️</div>
+          <p>No se pudo conectar a la base de datos.<br>
+          <small style="color:var(--gray)">Verifica tu conexión o las reglas de Firestore.</small></p>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="location.reload()">🔄 Reintentar</button>
+        </div></td></tr>`;
+      document.getElementById('countLabel').textContent = '';
+      return;
+    }
+
     renderTabla(allPolizas);
 
     ['searchInput','filterAseg','filterTipo','filterEstado'].forEach(id => {
