@@ -9,9 +9,29 @@ import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc,
 
 // ── AUTH GUARD ───────────────────────────────────────────────
 export function requireAuth(cb) {
+  // 1️⃣ Verificar sesión local primero
+  const localRaw = sessionStorage.getItem('localUser');
+  if (localRaw) {
+    const localUser = JSON.parse(localRaw);
+    const fakeUser = {
+      email: localUser.usuario,
+      displayName: localUser.nombre,
+      uid: 'local-admin',
+      isLocal: true
+    };
+    const el = document.getElementById('currentUser');
+    if (el) {
+      el.textContent = localUser.nombre;
+      const av = document.getElementById('userAvatar');
+      if (av) av.textContent = localUser.nombre.charAt(0).toUpperCase();
+    }
+    if (cb) cb(fakeUser);
+    return;
+  }
+
+  // 2️⃣ Si no hay sesión local, verificar Firebase
   onAuthStateChanged(auth, user => {
     if (!user) { window.location.href = 'login.html'; return; }
-    // Mostrar email en header
     const el = document.getElementById('currentUser');
     if (el) {
       const name = user.displayName || user.email.split('@')[0];
@@ -25,7 +45,8 @@ export function requireAuth(cb) {
 
 // ── LOGOUT ───────────────────────────────────────────────────
 export async function logout() {
-  await signOut(auth);
+  sessionStorage.removeItem('localUser');
+  try { await signOut(auth); } catch(e) {}
   window.location.href = 'login.html';
 }
 
