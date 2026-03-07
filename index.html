@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Sistema de Pólizas</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="corp-header">
+  <a class="logo-area" href="index.html">
+    <img src="img1.jpg" alt="Logo" style="height:62px;width:auto;border-radius:8px;object-fit:contain;">
+    <div class="logo-text">
+      <h1>Gestión de Pólizas</h1>
+      <span>Sistema de Seguros</span>
+    </div>
+  </a>
+  <div class="header-right"><button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+    <div class="user-pill">
+      <div class="avatar" id="userAvatar">U</div>
+      <span id="currentUser">—</span>
+    </div>
+    <button class="btn-logout" id="btnLogout">Salir</button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Principal</div>
+    <a class="nav-item active" href="index.html"><span class="nav-icon">📊</span> Dashboard</a>
+    <a class="nav-item" href="polizas.html"><span class="nav-icon">📋</span> Pólizas</a>
+    <a class="nav-item" href="registro.html"><span class="nav-icon">➕</span> Nueva Póliza</a>
+
+    <div class="sidebar-section" style="margin-top:12px">Administración</div>
+    <a class="nav-item" href="usuarios.html"><span class="nav-icon">👥</span> Usuarios</a>
+    <a class="nav-item" href="historial.html"><span class="nav-icon">🕓</span> Historial</a>
+    <a class="nav-item" href="reportes.html"><span class="nav-icon">🖨️</span> Reportes</a>
+
+    <div class="sidebar-footer">
+      <div class="sf-label">Sistema</div>
+      <div class="sf-version">v1.0 · 2026</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="page-header" style="background:transparent; border:none; padding:0 0 20px;">
+      <div>
+        <h2><span class="icon">📊</span> Dashboard</h2>
+        <div class="breadcrumb">Bienvenid@, <strong id="welcomeName">—</strong> · <span id="today"></span></div>
+      </div>
+      <a href="registro.html" class="btn btn-primary">➕ Nueva Póliza</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card blue"><div class="stat-icon">📋</div><div class="stat-number" id="sTotal">—</div><div class="stat-label">Total Pólizas</div></div>
+      <div class="stat-card mint"><div class="stat-icon">✅</div><div class="stat-number" id="sVigentes">—</div><div class="stat-label">Vigentes</div></div>
+      <div class="stat-card amber"><div class="stat-icon">⏰</div><div class="stat-number" id="sPorVencer">—</div><div class="stat-label">Por Vencer (90d)</div></div>
+      <div class="stat-card rose"><div class="stat-icon">❌</div><div class="stat-number" id="sVencidas">—</div><div class="stat-label">Vencidas</div></div>
+      <div class="stat-card lav"><div class="stat-icon">💰</div><div class="stat-number" id="sPrima">—</div><div class="stat-label">Prima Anual Total</div></div>
+    </div>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">🏢 Pólizas por Aseguradora</div>
+        <canvas id="chartAseguradora" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📁 Pólizas por Tipo de Seguro</div>
+        <canvas id="chartTipo" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">💳 Distribución por Tipo de Pago</div>
+        <canvas id="chartPago" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">⏰ Pólizas por Vencer (próximos 90 días)</div>
+        <div id="vencimientoList" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- TABLA RECIENTES -->
+    <div class="card">
+      <div class="card-title">🕓 Pólizas Recientes</div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>No. Póliza</th>
+              <th>Contratante</th>
+              <th>Aseguradora</th>
+              <th>Tipo</th>
+              <th>Fin Vigencia</th>
+              <th>Estado</th>
+              <th>Prima Anual</th>
+            </tr>
+          </thead>
+          <tbody id="tablaRecientes"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="corp-footer">
+  <strong>Sistema de Gestión de Pólizas</strong> · Todos los derechos reservados © 2026
+</div>
+<div id="toast"></div>
+
+<script type="module">
+  import { initMobileMenu } from './mobile-menu.js';
+  import { requireAuth, logout, getPolizas, formatDate, formatMoney, diasParaVencer, badgeVencimiento } from './auth-guard.js';
+
+  document.getElementById('btnLogout').addEventListener('click', logout);
+  initMobileMenu();
+
+  const PALETTE = ['#1B3A5C','#2E6DA4','#5BA4CF','#A8D4F0','#C4E8DF','#D5DCFA','#F5D5E0','#F59E0B','#27ae60','#E91E8C'];
+
+  requireAuth(async (user) => {
+    document.getElementById('welcomeName').textContent = user.displayName || user.email.split('@')[0];
+    document.getElementById('today').textContent = new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    const polizas = await getPolizas();
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    // Stats
+    const vigentes   = polizas.filter(p => { const d = diasParaVencer(p.finPoliza); return d !== null && d >= 0; });
+    const porVencer  = polizas.filter(p => { const d = diasParaVencer(p.finPoliza); return d !== null && d >= 0 && d <= 90; });
+    const vencidas   = polizas.filter(p => { const d = diasParaVencer(p.finPoliza); return d !== null && d < 0; });
+    const totalPrima = polizas.reduce((s, p) => s + (parseFloat(p.primaAnual) || 0), 0);
+
+    document.getElementById('sTotal').textContent    = polizas.length;
+    document.getElementById('sVigentes').textContent = vigentes.length;
+    document.getElementById('sPorVencer').textContent= porVencer.length;
+    document.getElementById('sVencidas').textContent = vencidas.length;
+    document.getElementById('sPrima').textContent    = formatMoney(totalPrima);
+
+    // Chart: Aseguradoras
+    const byAseg = {}; polizas.forEach(p => { byAseg[p.aseguradora||'Otros'] = (byAseg[p.aseguradora||'Otros']||0)+1; });
+    new Chart(document.getElementById('chartAseguradora'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(byAseg),
+        datasets: [{ data: Object.values(byAseg), backgroundColor: PALETTE, borderRadius: 8, borderSkipped: false }]
+      },
+      options: { plugins:{ legend:{display:false} }, scales:{ x:{grid:{display:false}}, y:{grid:{color:'#f0f0f0'}, ticks:{stepSize:1}} }, responsive:true }
+    });
+
+    // Chart: Tipo de seguro
+    const byTipo = {}; polizas.forEach(p => { byTipo[p.tipoSeguro||'Otro'] = (byTipo[p.tipoSeguro||'Otro']||0)+1; });
+    new Chart(document.getElementById('chartTipo'), {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(byTipo),
+        datasets: [{ data: Object.values(byTipo), backgroundColor: PALETTE, hoverOffset: 8, borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: { plugins:{ legend:{ position:'right', labels:{ font:{size:11}, boxWidth:12 } } }, responsive:true, cutout:'65%' }
+    });
+
+    // Chart: Tipo de pago
+    const byPago = {}; polizas.forEach(p => { byPago[p.tipoPago||'N/D'] = (byPago[p.tipoPago||'N/D']||0)+1; });
+    new Chart(document.getElementById('chartPago'), {
+      type: 'pie',
+      data: {
+        labels: Object.keys(byPago),
+        datasets: [{ data: Object.values(byPago), backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: { plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } }, responsive:true }
+    });
+
+    // Por vencer list
+    const wrapV = document.getElementById('vencimientoList');
+    if (porVencer.length === 0) {
+      wrapV.innerHTML = '<div class="empty-state" style="padding:20px"><div class="es-icon">🎉</div><p>No hay pólizas por vencer en 90 días</p></div>';
+    } else {
+      const sorted = [...porVencer].sort((a,b) => new Date(a.finPoliza) - new Date(b.finPoliza));
+      wrapV.innerHTML = '<div class="bar-list">' + sorted.slice(0,6).map(p => {
+        const d = diasParaVencer(p.finPoliza);
+        const pct = Math.max(5, Math.round((d/90)*100));
+        const cls = d <= 15 ? 'rose' : d <= 30 ? 'amber' : '';
+        return `<div class="bar-item">
+          <div class="bar-label"><span>${p.nombreContratante || p.noPoliza}</span><span>${d}d · ${formatDate(p.finPoliza)}</span></div>
+          <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('') + '</div>';
+    }
+
+    // Tabla recientes
+    const tbody = document.getElementById('tablaRecientes');
+    if (polizas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--gray)">Sin registros aún.</td></tr>';
+    } else {
+      tbody.innerHTML = polizas.slice(0,10).map(p => {
+        const d = diasParaVencer(p.finPoliza);
+        const rowCls = d !== null && d < 0 ? 'row-expired' : d !== null && d <= 30 ? 'row-warning' : '';
+        return `<tr class="${rowCls}" onclick="location.href='polizas.html#${p.id}'">
+          <td><strong>${p.noPoliza||'—'}</strong></td>
+          <td>${p.nombreContratante||'—'}</td>
+          <td>${p.aseguradora||'—'}</td>
+          <td>${p.tipoSeguro||'—'}</td>
+          <td>${formatDate(p.finPoliza)}</td>
+          <td>${badgeVencimiento(d)}</td>
+          <td>${formatMoney(p.primaAnual)}</td>
+        </tr>`;
+      }).join('');
+    }
+  });
+</script>
+</body>
+</html>
