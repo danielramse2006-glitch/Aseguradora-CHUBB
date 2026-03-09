@@ -276,17 +276,6 @@
     </div>`;
   }
 
-  function calcAntig(fechaEmision) {
-    if (!fechaEmision) return '—';
-    const inicio = new Date(fechaEmision + 'T00:00:00');
-    const hoy = new Date();
-    let years  = hoy.getFullYear() - inicio.getFullYear();
-    let months = hoy.getMonth() - inicio.getMonth();
-    if (months < 0) { years--; months += 12; }
-    if (years > 0) return `${years}a ${months}m`;
-    return `${months} mes${months !== 1 ? 'es' : ''}`;
-  }
-
   window.openEditar = (id) => {
     const p = allPolizas.find(x => x.id === id);
     if (!p) return;
