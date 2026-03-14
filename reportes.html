@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes — Sistema de Seguros</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<header class="corp-header">
+  <a class="logo-area" href="index.html">
+    <img src="img1.jpg" alt="Logo" style="height:62px;width:auto;border-radius:8px;object-fit:contain;">
+    <div class="logo-text"><h1>Gestión de Pólizas</h1><span>Sistema de Seguros</span></div>
+  </a>
+  <div class="header-right"><button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+    <div class="user-pill"><div class="avatar" id="userAvatar">U</div><span id="currentUser">—</span></div>
+    <button class="btn-logout" id="btnLogout">Salir</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">Principal</div>
+    <a class="nav-item" href="index.html"><span class="nav-icon">📊</span> Dashboard</a>
+    <a class="nav-item" href="polizas.html"><span class="nav-icon">📋</span> Pólizas</a>
+    <a class="nav-item" href="registro.html"><span class="nav-icon">➕</span> Nueva Póliza</a>
+    <div class="sidebar-section" style="margin-top:12px">Administración</div>
+    <a class="nav-item" href="usuarios.html"><span class="nav-icon">👥</span> Usuarios</a>
+    <a class="nav-item" href="historial.html"><span class="nav-icon">🕓</span> Historial</a>
+    <a class="nav-item active" href="reportes.html"><span class="nav-icon">🖨️</span> Reportes</a>
+    <div class="sidebar-footer"><div class="sf-label">Sistema</div><div class="sf-version">v2.0 · 2026</div></div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header" style="background:transparent;border:none;padding:0 0 20px;">
+      <div>
+        <h2><span class="icon">🖨️</span> Reportes</h2>
+        <div class="breadcrumb"><a href="index.html">Inicio</a> › Reportes</div>
+      </div>
+    </div>
+
+    <!-- REPORTE GENERAL -->
+    <div class="card">
+      <div class="card-title">📄 Reporte General de Pólizas</div>
+      <p style="color:var(--gray);font-size:13.5px;margin-bottom:18px">Genera un PDF con el listado completo de pólizas con todos los campos.</p>
+      <div class="form-grid" style="margin-bottom:18px">
+        <div class="form-group">
+          <label>Aseguradora</label>
+          <select id="rFilterAseg"><option value="">Todas</option></select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Seguro</label>
+          <select id="rFilterTipo"><option value="">Todos</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="rFilterEstado">
+            <option value="">Todos</option>
+            <option value="vigente">Vigentes</option>
+            <option value="por_vencer">Por Vencer (90d)</option>
+            <option value="vencida">Vencidas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estatus</label>
+          <select id="rFilterEstatus"><option value="">Todos</option></select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Emisión — Desde</label>
+          <input type="date" id="rFechaDesde">
+        </div>
+        <div class="form-group">
+          <label>Fecha Emisión — Hasta</label>
+          <input type="date" id="rFechaHasta">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnReporteGeneral">🖨️ Generar PDF General</button>
+      <span id="rCount" style="margin-left:14px;font-size:13px;color:var(--gray)"></span>
+    </div>
+
+    <!-- REPORTE INDIVIDUAL -->
+    <div class="card">
+      <div class="card-title">📑 Ficha Individual de Póliza</div>
+      <p style="color:var(--gray);font-size:13.5px;margin-bottom:18px">Busca una póliza y genera su ficha PDF con todos los datos.</p>
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchIndividual" placeholder="No. Póliza o nombre del contratante…">
+        </div>
+        <button class="btn btn-secondary" id="btnBuscarInd">Buscar</button>
+      </div>
+      <div id="resultadosInd" style="margin-top:12px"></div>
+    </div>
+  </main>
+</div>
+
+<div class="corp-footer">
+  <strong>Sistema de Gestión de Pólizas</strong> · Todos los derechos reservados © 2026
+</div>
+<div id="toast"></div>
+
+<script type="module">
+  import { initMobileMenu } from './mobile-menu.js';
+  import { requireAuth, logout, getPolizas, formatDate, formatMoney,
+           diasParaVencer, toast, calcAntig, ASEGURADORAS, TIPOS_SEGURO, ESTATUS_POLIZA } from './auth-guard.js';
+
+  document.getElementById('btnLogout').addEventListener('click', logout);
+  initMobileMenu();
+
+  const { jsPDF } = window.jspdf;
+  let allPolizas = [];
+
+  ASEGURADORAS.forEach(a => document.getElementById('rFilterAseg').insertAdjacentHTML('beforeend', `<option>${a}</option>`));
+  TIPOS_SEGURO.forEach(t => document.getElementById('rFilterTipo').insertAdjacentHTML('beforeend', `<option>${t}</option>`));
+  ESTATUS_POLIZA.forEach(s => document.getElementById('rFilterEstatus').insertAdjacentHTML('beforeend', `<option>${s}</option>`));
+
+  requireAuth(async (user) => {
+    allPolizas = await getPolizas();
+    actualizarCount();
+    ['rFilterAseg','rFilterTipo','rFilterEstado','rFilterEstatus','rFechaDesde','rFechaHasta'].forEach(id =>
+      document.getElementById(id).addEventListener('change', actualizarCount));
+    document.getElementById('btnReporteGeneral').addEventListener('click', () => generarPDFGeneral(user));
+    document.getElementById('btnBuscarInd').addEventListener('click', buscarIndividual);
+    document.getElementById('searchIndividual').addEventListener('keydown', e => { if (e.key === 'Enter') buscarIndividual(); });
+  });
+
+  function filtrarPolizas() {
+    const aseg   = document.getElementById('rFilterAseg').value;
+    const tipo   = document.getElementById('rFilterTipo').value;
+    const estado = document.getElementById('rFilterEstado').value;
+    const estatus= document.getElementById('rFilterEstatus').value;
+    const desde  = document.getElementById('rFechaDesde').value;
+    const hasta  = document.getElementById('rFechaHasta').value;
+    return allPolizas.filter(p => {
+      if (aseg   && p.aseguradora !== aseg)   return false;
+      if (tipo   && p.tipoSeguro !== tipo)     return false;
+      if (estatus && p.estatusPoliza !== estatus) return false;
+      if (desde  && p.fechaEmision < desde)   return false;
+      if (hasta  && p.fechaEmision > hasta)   return false;
+      if (estado) {
+        const d = diasParaVencer(p.finPoliza);
+        if (estado === 'vencida'    && !(d !== null && d < 0))             return false;
+        if (estado === 'por_vencer' && !(d !== null && d >= 0 && d <= 90)) return false;
+        if (estado === 'vigente'    && !(d !== null && d > 90))             return false;
+      }
+      return true;
+    });
+  }
+
+  function actualizarCount() {
+    const n = filtrarPolizas().length;
+    document.getElementById('rCount').textContent = `${n} póliza${n !== 1 ? 's' : ''} encontrada${n !== 1 ? 's' : ''}`;
+  }
+
+  function headerPDF(doc, title) {
+    doc.setFillColor(27, 58, 92);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setFillColor(168, 212, 240);
+    doc.rect(0, 28, 210, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+    doc.text('Sistema de Gestion de Polizas', 14, 12);
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.text(title, 14, 21);
+    doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, 140, 21);
+    doc.setTextColor(44, 58, 74);
+  }
+
+  function footerPDF(doc) {
+    const pages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8); doc.setTextColor(107, 122, 141);
+      doc.text(`Pagina ${i} de ${pages}`, 14, 290);
+      doc.text('Sistema de Gestion de Polizas - Confidencial', 105, 290, { align: 'center' });
+      doc.text(new Date().toLocaleDateString('es-MX'), 196, 290, { align: 'right' });
+    }
+  }
+
+  function estadoTexto(p) {
+    const d = diasParaVencer(p.finPoliza);
+    if (d === null) return '—';
+    if (d < 0)      return 'Vencida';
+    if (d <= 30)    return `Vence en ${d}d`;
+    if (d <= 90)    return `Por vencer (${d}d)`;
+    return 'Vigente';
+  }
+
+  function fmtMoney(n, moneda) {
+    const m = moneda === 'Dólar' ? 'USD' : moneda === 'UDI' ? 'UDI' : 'MXN';
+    return formatMoney(n, m);
+  }
+
+  function generarPDFGeneral(user) {
+    const polizas = filtrarPolizas();
+    if (polizas.length === 0) { toast('No hay pólizas con esos filtros', 'error'); return; }
+    const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
+    headerPDF(doc, `Reporte General de Polizas - ${polizas.length} registros`);
+    const totalPrima = polizas.reduce((s, p) => s + (parseFloat(p.primaAnual) || 0), 0);
+    doc.setFontSize(9); doc.setTextColor(44, 58, 74);
+    doc.text(`Total polizas: ${polizas.length}   |   Prima total: ${formatMoney(totalPrima)}   |   Generado por: ${user.email}`, 14, 38);
+    doc.autoTable({
+      startY: 43,
+      head: [['No. Poliza','Aseguradora','Tipo','Plan','Moneda','Contratante','Titular','Emision','Inicio','Vencimiento','Prima Neta','Prima Anual','Estatus','Cobertura','Antiguedad']],
+      body: polizas.map(p => [
+        p.noPoliza||'—', p.aseguradora||'—', p.tipoSeguro||'—', p.plan||'—', p.moneda||'—',
+        p.nombreContratante||'—', p.nombreTitular||'—',
+        formatDate(p.fechaEmision), formatDate(p.inicioPoliza), formatDate(p.finPoliza),
+        fmtMoney(p.primaNeta, p.moneda), fmtMoney(p.primaAnual, p.moneda),
+        p.estatusPoliza||estadoTexto(p), p.cobertura||'—', calcAntig(p.fechaEmision)
+      ]),
+      styles: { fontSize: 6.5, cellPadding: 2.5 },
+      headStyles: { fillColor: [27, 58, 92], textColor: 255, fontStyle: 'bold', fontSize: 6.5 },
+      alternateRowStyles: { fillColor: [247, 251, 255] },
+      columnStyles: { 5: { cellWidth: 26 }, 6: { cellWidth: 22 } },
+      margin: { left: 8, right: 8 }
+    });
+    footerPDF(doc);
+    doc.save(`Polizas_${new Date().toISOString().slice(0,10)}.pdf`);
+    toast('PDF generado correctamente ✅', 'success');
+  }
+
+  function buscarIndividual() {
+    const q = document.getElementById('searchIndividual').value.trim().toLowerCase();
+    if (!q) return;
+    const found = allPolizas.filter(p =>
+      (p.noPoliza||'').toLowerCase().includes(q) ||
+      (p.nombreContratante||'').toLowerCase().includes(q)
+    );
+    const wrap = document.getElementById('resultadosInd');
+    if (found.length === 0) { wrap.innerHTML = '<p style="color:var(--gray);font-size:13px">Sin resultados.</p>'; return; }
+    wrap.innerHTML = '<div class="table-wrapper"><table><thead><tr><th>No. Póliza</th><th>Contratante</th><th>Aseguradora</th><th>Tipo</th><th>Vencimiento</th><th>PDF</th></tr></thead><tbody>' +
+      found.map(p => `<tr>
+        <td>${p.noPoliza||'—'}</td><td>${p.nombreContratante||'—'}</td>
+        <td>${p.aseguradora||'—'}</td><td>${p.tipoSeguro||'—'}</td>
+        <td>${formatDate(p.finPoliza)}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="generarFicha('${p.id}')">📑 Ficha PDF</button></td>
+      </tr>`).join('') + '</tbody></table></div>';
+  }
+
+  window.generarFicha = (id) => {
+    const p = allPolizas.find(x => x.id === id);
+    if (!p) return;
+    const doc = new jsPDF();
+    headerPDF(doc, `Ficha de Poliza - ${p.noPoliza||''}`);
+    let y = 42;
+
+    function seccion(titulo) {
+      doc.setFillColor(214, 236, 250);
+      doc.roundedRect(14, y, 182, 8, 2, 2, 'F');
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 58, 92);
+      doc.text(titulo, 18, y + 5.5);
+      y += 12;
+    }
+
+    function fila(label, val, col2 = false, label2 = '', val2 = '') {
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(107, 122, 141);
+      doc.text(label.toUpperCase(), 18, y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(44, 58, 74);
+      doc.text(String(val||'—'), 68, y);
+      if (col2) {
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(107, 122, 141);
+        doc.text(label2.toUpperCase(), 115, y);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(44, 58, 74);
+        doc.text(String(val2||'—'), 162, y);
+      }
+      y += 7;
+    }
+
+    seccion('DATOS DE LA POLIZA');
+    fila('Aseguradora', p.aseguradora, true, 'Tipo de Seguro', p.tipoSeguro);
+    fila('Plan', p.plan, true, 'No. Poliza', p.noPoliza);
+    fila('No. Asesor', p.noAsesor, true, 'Estatus', p.estatusPoliza);
+    fila('Moneda', p.moneda, true, 'Suma Asegurada', fmtMoney(p.sumaAsegurada, p.moneda));
+    fila('Cobertura', p.cobertura, true, 'Tipo de Pago', p.tipoPago);
+    fila('Modo de Cobro', p.modoCobro, true, 'Medio de Cobro', p.medioCobro);
+    fila('No. Token / CLABE', p.noToken);
+    fila('Emision', formatDate(p.fechaEmision), true, 'Inicio', formatDate(p.inicioPoliza));
+    fila('Vencimiento', formatDate(p.finPoliza), true, 'Antiguedad', calcAntig(p.fechaEmision));
+    y += 3;
+
+    seccion('PRIMAS');
+    fila('Prima Neta', fmtMoney(p.primaNeta, p.moneda), true, 'Prima Anual Total', fmtMoney(p.primaAnual, p.moneda));
+    if (p.tipoSeguro === 'Vida') {
+      fila('Prima en Pesos', formatMoney(p.primaEnPesos, 'MXN'), true, 'Prima en Dolares', formatMoney(p.primaEnDolares, 'USD'));
+      fila('Prima en UDIs', formatMoney(p.primaEnUdis, 'UDI'));
+    }
+    y += 3;
+
+    seccion('DATOS DEL CONTRATANTE');
+    fila('Nombre', p.nombreContratante, true, 'Telefono', p.telefonoContratante);
+    fila('Correo', p.correoContratante, true, 'Direccion', p.direccionContratante ? p.direccionContratante.substring(0,30) : '—');
+    y += 3;
+
+    seccion('TITULAR Y ASEGURADOS');
+    fila('Nombre del Titular', p.nombreTitular, true, 'Fecha de Nacimiento', formatDate(p.fechaNacTitular));
+    if (p.aseguradosAdicionales && p.aseguradosAdicionales.length > 0) {
+      p.aseguradosAdicionales.forEach((a, i) => {
+        fila(`Asegurado ${i+1}`, a.nombre, true, 'Nac.', formatDate(a.fechaNac));
+      });
+    }
+    y += 10;
+
+    // Líneas de firma
+    if (y < 260) {
+      doc.setDrawColor(168, 212, 240);
+      doc.line(14, y, 90, y); doc.line(120, y, 196, y);
+      y += 5;
+      doc.setFontSize(8); doc.setTextColor(107,122,141);
+      doc.text('Firma del Agente', 14, y);
+      doc.text('Firma del Contratante', 120, y);
+    }
+
+    footerPDF(doc);
+    doc.save(`Poliza_${p.noPoliza||p.id}_${new Date().toISOString().slice(0,10)}.pdf`);
+    toast('Ficha PDF generada ✅', 'success');
+  };
+</script>
+</body>
+</html>

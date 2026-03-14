@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva / Editar Póliza — Sistema de Seguros</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="corp-header">
+  <a class="logo-area" href="index.html">
+    <img src="img1.jpg" alt="Logo" style="height:62px;width:auto;border-radius:8px;object-fit:contain;">
+    <div class="logo-text"><h1>Gestión de Pólizas</h1><span>Sistema de Seguros</span></div>
+  </a>
+  <div class="header-right"><button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+    <div class="user-pill"><div class="avatar" id="userAvatar">U</div><span id="currentUser">—</span></div>
+    <button class="btn-logout" id="btnLogout">Salir</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">Principal</div>
+    <a class="nav-item" href="index.html"><span class="nav-icon">📊</span> Dashboard</a>
+    <a class="nav-item" href="polizas.html"><span class="nav-icon">📋</span> Pólizas</a>
+    <a class="nav-item active" href="registro.html"><span class="nav-icon">➕</span> Nueva Póliza</a>
+    <div class="sidebar-section" style="margin-top:12px">Administración</div>
+    <a class="nav-item" href="usuarios.html"><span class="nav-icon">👥</span> Usuarios</a>
+    <a class="nav-item" href="historial.html"><span class="nav-icon">🕓</span> Historial</a>
+    <a class="nav-item" href="reportes.html"><span class="nav-icon">🖨️</span> Reportes</a>
+    <div class="sidebar-footer"><div class="sf-label">Sistema</div><div class="sf-version">v2.0 · 2026</div></div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header" style="background:transparent;border:none;padding:0 0 20px;">
+      <div>
+        <h2><span class="icon" id="pageIcon">➕</span> <span id="pageTitle">Nueva Póliza</span></h2>
+        <div class="breadcrumb"><a href="index.html">Inicio</a> › <a href="polizas.html">Pólizas</a> › <span id="breadcrumbLast">Nueva</span></div>
+      </div>
+    </div>
+
+    <form id="formPoliza" onsubmit="return false">
+
+      <!-- SECCIÓN 1: DATOS DE LA PÓLIZA -->
+      <div class="card">
+        <div class="card-title">🛡️ Datos de la Póliza</div>
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>Aseguradora *</label>
+            <select id="aseguradora" required><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de Seguro *</label>
+            <select id="tipoSeguro" required><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Plan</label>
+            <select id="plan"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>No. Póliza *</label>
+            <input type="text" id="noPoliza" placeholder="Ej: CHB-2026-001" required>
+          </div>
+
+          <div class="form-group">
+            <label>No. Asesor</label>
+            <input type="text" id="noAsesor" placeholder="Ej: 107304">
+          </div>
+
+          <div class="form-group">
+            <label>Estatus</label>
+            <select id="estatusPoliza"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Moneda</label>
+            <select id="moneda"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Suma Asegurada</label>
+            <input type="number" id="sumaAsegurada" placeholder="0.00" step="0.01" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Cobertura</label>
+            <select id="cobertura"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de Pago</label>
+            <select id="tipoPago"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Modo de Cobro</label>
+            <select id="modoCobro"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Medio de Cobro</label>
+            <select id="medioCobro"><option value="">Selecciona…</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>No. Token / Cuenta CLABE</label>
+            <input type="text" id="noToken" placeholder="Número de token o CLABE">
+          </div>
+
+          <!-- FECHAS -->
+          <div class="form-group">
+            <label>Fecha de Emisión * <small style="color:var(--gray)">(DD-MM-AAAA)</small></label>
+            <input type="date" id="fechaEmision" required>
+          </div>
+
+          <div class="form-group">
+            <label>Inicio de Vigencia * <small style="color:var(--gray)">(DD-MM-AAAA)</small></label>
+            <input type="date" id="inicioPoliza" required>
+          </div>
+
+          <div class="form-group">
+            <label>Vencimiento * <small style="color:var(--gray)">(DD-MM-AAAA)</small></label>
+            <input type="date" id="finPoliza" required>
+            <div id="diasRestantes" style="margin-top:6px;font-size:12px;color:var(--gray)"></div>
+          </div>
+
+        </div>
+
+        <!-- PRIMAS -->
+        <div style="margin-top:18px; padding-top:18px; border-top:1px dashed var(--celeste)">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--navy);margin-bottom:14px">💰 Primas</div>
+          <div class="prima-moneda-grid">
+            <div class="form-group">
+              <label>Prima Neta</label>
+              <input type="number" id="primaNeta" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Prima Anual Total (con derechos e IVA)</label>
+              <input type="number" id="primaAnual" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <!-- Campos adicionales solo para Vida -->
+            <div class="form-group vida-only" style="display:none">
+              <label>Prima en Pesos</label>
+              <input type="number" id="primaEnPesos" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group vida-only" style="display:none">
+              <label>Prima en Dólares (USD)</label>
+              <input type="number" id="primaEnDolares" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group vida-only" style="display:none">
+              <label>Prima en UDIs</label>
+              <input type="number" id="primaEnUdis" placeholder="0.000000" step="0.000001" min="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: CONTRATANTE -->
+      <div class="card">
+        <div class="card-title">👤 Datos del Contratante</div>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Nombre del Contratante *</label>
+            <input type="text" id="nombreContratante" placeholder="Nombre completo" required>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Dirección del Contratante</label>
+            <input type="text" id="direccionContratante" placeholder="Calle, número, colonia, ciudad">
+          </div>
+          <div class="form-group">
+            <label>Teléfono del Contratante</label>
+            <input type="tel" id="telefonoContratante" placeholder="81 1234 5678">
+          </div>
+          <div class="form-group">
+            <label>Correo Electrónico del Contratante</label>
+            <input type="email" id="correoContratante" placeholder="correo@ejemplo.com">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3: TITULAR -->
+      <div class="card">
+        <div class="card-title">🪪 Datos del Titular (Asegurado Principal)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre del Titular *</label>
+            <input type="text" id="nombreTitular" placeholder="Nombre completo del titular" required>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Nacimiento del Titular</label>
+            <input type="date" id="fechaNacTitular">
+          </div>
+          <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end">
+            <label style="margin-bottom:6px;font-size:11px;color:var(--gray)">Antigüedad (desde fecha de emisión)</label>
+            <div id="antigDisplay" style="padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--soft);color:var(--navy);font-weight:600;font-size:14px">—</div>
+          </div>
+        </div>
+
+        <!-- ASEGURADOS ADICIONALES -->
+        <div style="margin-top:20px;padding-top:18px;border-top:1px dashed var(--celeste)">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--navy);margin-bottom:14px">👨‍👩‍👧 Asegurados Adicionales</div>
+          <div id="aseguradosContainer"></div>
+          <button type="button" class="btn-add-aseg" id="btnAddAsegurado">➕ Agregar Asegurado</button>
+        </div>
+      </div>
+
+      <!-- BOTONES -->
+      <div class="btn-actions" style="padding-top:0;border-top:none">
+        <button class="btn btn-primary" id="btnGuardar">💾 Guardar Póliza</button>
+        <a href="polizas.html" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </main>
+</div>
+
+<div class="corp-footer">
+  <strong>Sistema de Gestión de Pólizas</strong> · Todos los derechos reservados © 2026
+</div>
+<div id="toast"></div>
+
+<script type="module">
+  import { initMobileMenu } from './mobile-menu.js';
+  import { requireAuth, logout, addPoliza, updatePoliza, getPoliza, toast,
+           ASEGURADORAS, TIPOS_SEGURO, COBERTURAS, TIPOS_PAGO, MONEDAS,
+           MODOS_PAGO, PLANES, ESTATUS_POLIZA, MEDIOS_COBRO, calcAntig } from './auth-guard.js';
+
+  document.getElementById('btnLogout').addEventListener('click', logout);
+  initMobileMenu();
+
+  // Poblar selects
+  ASEGURADORAS.forEach(v => document.getElementById('aseguradora').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  TIPOS_SEGURO.forEach(v => document.getElementById('tipoSeguro').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  COBERTURAS.forEach(v => document.getElementById('cobertura').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  TIPOS_PAGO.forEach(v => document.getElementById('tipoPago').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  MONEDAS.forEach(v => document.getElementById('moneda').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  MODOS_PAGO.forEach(v => document.getElementById('modoCobro').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  PLANES.forEach(v => document.getElementById('plan').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  ESTATUS_POLIZA.forEach(v => document.getElementById('estatusPoliza').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+  MEDIOS_COBRO.forEach(v => document.getElementById('medioCobro').insertAdjacentHTML('beforeend', `<option>${v}</option>`));
+
+  // Mostrar campos extra si es Vida
+  document.getElementById('tipoSeguro').addEventListener('change', () => {
+    const esVida = document.getElementById('tipoSeguro').value === 'Vida';
+    document.querySelectorAll('.vida-only').forEach(el => el.style.display = esVida ? '' : 'none');
+  });
+
+  // Calcular antigüedad y días restantes
+  document.getElementById('fechaEmision').addEventListener('change', () => {
+    const val = document.getElementById('fechaEmision').value;
+    document.getElementById('antigDisplay').textContent = val ? calcAntig(val) : '—';
+  });
+
+  document.getElementById('finPoliza').addEventListener('change', () => {
+    const val = document.getElementById('finPoliza').value;
+    if (!val) { document.getElementById('diasRestantes').textContent = ''; return; }
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const fin = new Date(val + 'T00:00:00');
+    const dias = Math.round((fin - hoy) / 86400000);
+    const el = document.getElementById('diasRestantes');
+    if (dias < 0)   el.innerHTML = `<span style="color:#c0392b">⚠️ Ya venció hace ${Math.abs(dias)} días</span>`;
+    else if (dias <= 30) el.innerHTML = `<span style="color:#c0392b">🔴 Vence en ${dias} días</span>`;
+    else if (dias <= 90) el.innerHTML = `<span style="color:#F59E0B">🟡 Vence en ${dias} días</span>`;
+    else el.innerHTML = `<span style="color:var(--blue)">🟢 Vence en ${dias} días</span>`;
+  });
+
+  // Asegurados adicionales
+  let asegCount = 0;
+  document.getElementById('btnAddAsegurado').addEventListener('click', () => {
+    asegCount++;
+    const id = `aseg_${asegCount}`;
+    const div = document.createElement('div');
+    div.className = 'asegurado-item';
+    div.id = id;
+    div.innerHTML = `
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px">Nombre del Asegurado ${asegCount}</label>
+        <input type="text" name="aseg_nombre_${asegCount}" placeholder="Nombre completo" style="margin-top:4px">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px">Fecha de Nacimiento</label>
+        <input type="date" name="aseg_fnac_${asegCount}" style="margin-top:4px">
+      </div>
+      <button type="button" class="btn-remove-aseg" onclick="document.getElementById('${id}').remove()">✕</button>`;
+    document.getElementById('aseguradosContainer').appendChild(div);
+  });
+
+  const params = new URLSearchParams(location.search);
+  const editId = params.get('edit');
+  let currentUser = null;
+
+  requireAuth(async (user) => {
+    currentUser = user;
+
+    if (editId) {
+      document.getElementById('pageIcon').textContent = '✏️';
+      document.getElementById('pageTitle').textContent = 'Editar Póliza';
+      document.getElementById('breadcrumbLast').textContent = 'Editar';
+      const p = await getPoliza(editId);
+      if (!p) { toast('Póliza no encontrada', 'error'); return; }
+
+      const fields = ['aseguradora','tipoSeguro','noPoliza','fechaEmision','inicioPoliza','finPoliza',
+                      'cobertura','tipoPago','primaAnual','primaNeta','primaEnPesos','primaEnDolares',
+                      'primaEnUdis','nombreContratante','direccionContratante','telefonoContratante',
+                      'correoContratante','nombreTitular','fechaNacTitular','plan','noAsesor',
+                      'estatusPoliza','moneda','sumaAsegurada','modoCobro','medioCobro','noToken'];
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el && p[f] !== undefined) el.value = p[f];
+      });
+
+      // Trigger eventos
+      document.getElementById('fechaEmision').dispatchEvent(new Event('change'));
+      document.getElementById('finPoliza').dispatchEvent(new Event('change'));
+      document.getElementById('tipoSeguro').dispatchEvent(new Event('change'));
+
+      // Cargar asegurados adicionales
+      if (p.aseguradosAdicionales && Array.isArray(p.aseguradosAdicionales)) {
+        p.aseguradosAdicionales.forEach(a => {
+          document.getElementById('btnAddAsegurado').click();
+          const last = document.querySelectorAll('[name^="aseg_nombre_"]');
+          const lastN = document.querySelectorAll('[name^="aseg_fnac_"]');
+          if (last.length) last[last.length-1].value = a.nombre || '';
+          if (lastN.length) lastN[lastN.length-1].value = a.fechaNac || '';
+        });
+      }
+    }
+
+    document.getElementById('btnGuardar').addEventListener('click', async () => {
+      const required = ['aseguradora','tipoSeguro','noPoliza','fechaEmision','inicioPoliza','finPoliza','nombreContratante','nombreTitular'];
+      const missing = required.filter(f => !document.getElementById(f).value.trim());
+      if (missing.length) {
+        toast('Completa todos los campos obligatorios (*)', 'error');
+        document.getElementById(missing[0]).focus();
+        return;
+      }
+
+      // Recopilar asegurados adicionales
+      const aseguradosAdicionales = [];
+      document.querySelectorAll('[name^="aseg_nombre_"]').forEach((el, i) => {
+        const nombre = el.value.trim();
+        const fnacEl = document.querySelectorAll('[name^="aseg_fnac_"]')[i];
+        if (nombre) aseguradosAdicionales.push({ nombre, fechaNac: fnacEl ? fnacEl.value : '' });
+      });
+
+      const data = {
+        aseguradora:          document.getElementById('aseguradora').value,
+        tipoSeguro:           document.getElementById('tipoSeguro').value,
+        plan:                 document.getElementById('plan').value,
+        noPoliza:             document.getElementById('noPoliza').value.trim(),
+        noAsesor:             document.getElementById('noAsesor').value.trim(),
+        estatusPoliza:        document.getElementById('estatusPoliza').value,
+        moneda:               document.getElementById('moneda').value,
+        sumaAsegurada:        parseFloat(document.getElementById('sumaAsegurada').value) || 0,
+        fechaEmision:         document.getElementById('fechaEmision').value,
+        inicioPoliza:         document.getElementById('inicioPoliza').value,
+        finPoliza:            document.getElementById('finPoliza').value,
+        cobertura:            document.getElementById('cobertura').value,
+        tipoPago:             document.getElementById('tipoPago').value,
+        modoCobro:            document.getElementById('modoCobro').value,
+        medioCobro:           document.getElementById('medioCobro').value,
+        noToken:              document.getElementById('noToken').value.trim(),
+        primaNeta:            parseFloat(document.getElementById('primaNeta').value) || 0,
+        primaAnual:           parseFloat(document.getElementById('primaAnual').value) || 0,
+        primaEnPesos:         parseFloat(document.getElementById('primaEnPesos').value) || 0,
+        primaEnDolares:       parseFloat(document.getElementById('primaEnDolares').value) || 0,
+        primaEnUdis:          parseFloat(document.getElementById('primaEnUdis').value) || 0,
+        nombreContratante:    document.getElementById('nombreContratante').value.trim(),
+        direccionContratante: document.getElementById('direccionContratante').value.trim(),
+        telefonoContratante:  document.getElementById('telefonoContratante').value.trim(),
+        correoContratante:    document.getElementById('correoContratante').value.trim(),
+        nombreTitular:        document.getElementById('nombreTitular').value.trim(),
+        fechaNacTitular:      document.getElementById('fechaNacTitular').value,
+        aseguradosAdicionales,
+      };
+
+      const btn = document.getElementById('btnGuardar');
+      btn.textContent = 'Guardando…'; btn.disabled = true;
+
+      try {
+        if (editId) {
+          await updatePoliza(editId, data, user.email);
+          toast('Póliza actualizada correctamente ✅', 'success');
+        } else {
+          await addPoliza(data, user.email);
+          toast('Póliza registrada correctamente ✅', 'success');
+          document.getElementById('formPoliza').reset();
+          document.getElementById('antigDisplay').textContent = '—';
+          document.getElementById('aseguradosContainer').innerHTML = '';
+          asegCount = 0;
+        }
+        setTimeout(() => location.href = 'polizas.html', 1200);
+      } catch (e) {
+        toast('Error: ' + e.message, 'error');
+        btn.textContent = '💾 Guardar Póliza'; btn.disabled = false;
+      }
+    });
+  });
+</script>
+</body>
+</html>
