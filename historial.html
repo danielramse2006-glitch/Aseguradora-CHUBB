@@ -126,7 +126,7 @@
       return;
     }
     tbody.innerHTML = movs.map(m => {
-      const fecha = m.fecha?.toDate ? m.fecha.toDate().toLocaleString('es-MX') : '—';
+      const fecha = m.fecha ? new Date(m.fecha).toLocaleString('es-MX') : '—';
       return `<tr>
         <td style="white-space:nowrap;font-size:12px">${fecha}</td>
         <td><strong>${m.usuario||'—'}</strong></td>
