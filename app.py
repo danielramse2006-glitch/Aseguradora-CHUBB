@@ -1,0 +1,274 @@
+import os
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+CORS(app)
+
+# Rutas para servir archivos HTML
+@app.route('/')
+def serve_index():
+    return app.send_static_file('index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return app.send_static_file(path)
+
+# Configuración de Base de Datos
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///chubb.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
+
+db = SQLAlchemy(app)
+
+# Modelos
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class Poliza(db.Model):
+    __tablename__ = 'polizas'
+    id = db.Column(db.Integer, primary_key=True)
+    no_poliza = db.Column(db.String(50), nullable=False)
+    aseguradora = db.Column(db.String(100))
+    tipo_seguro = db.Column(db.String(100))
+    plan = db.Column(db.String(100))
+    no_asesor = db.Column(db.String(50))
+    estatus_poliza = db.Column(db.String(50))
+    moneda = db.Column(db.String(20))
+    suma_asegurada = db.Column(db.Float)
+    fecha_emision = db.Column(db.String(20))
+    inicio_poliza = db.Column(db.String(20))
+    fin_poliza = db.Column(db.String(20))
+    cobertura = db.Column(db.String(100))
+    tipo_pago = db.Column(db.String(50))
+    modo_cobro = db.Column(db.String(50))
+    medio_cobro = db.Column(db.String(50))
+    no_token = db.Column(db.String(100))
+    prima_neta = db.Column(db.Float)
+    prima_anual = db.Column(db.Float)
+    prima_en_pesos = db.Column(db.Float)
+    prima_en_dolares = db.Column(db.Float)
+    prima_en_udis = db.Column(db.Float)
+    nombre_contratante = db.Column(db.String(200))
+    direccion_contratante = db.Column(db.String(500))
+    telefono_contratante = db.Column(db.String(50))
+    correo_contratante = db.Column(db.String(120))
+    nombre_titular = db.Column(db.String(200))
+    fecha_nac_titular = db.Column(db.String(20))
+    asegurados_adicionales = db.Column(db.JSON)
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_por = db.Column(db.String(120))
+
+class Historial(db.Model):
+    __tablename__ = 'historial'
+    id = db.Column(db.Integer, primary_key=True)
+    accion = db.Column(db.String(50))
+    detalle = db.Column(db.String(500))
+    usuario = db.Column(db.String(120))
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Crear tablas
+with app.app_context():
+    db.create_all()
+    # Crear admin por defecto si no existe
+    if not Usuario.query.filter_by(email='admin@chubb.com').first():
+        admin = Usuario(nombre='Administrador', email='admin@chubb.com')
+        admin.set_password('123456')
+        db.session.add(admin)
+        db.session.commit()
+
+# --- Rutas API ---
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    user = Usuario.query.filter_by(email=email).first()
+    if user and user.check_password(password):
+        return jsonify({
+            'success': True,
+            'user': {
+                'nombre': user.nombre,
+                'email': user.email
+            }
+        })
+    return jsonify({'success': False, 'message': 'Credenciales incorrectas'}), 401
+
+@app.route('/api/polizas', methods=['GET'])
+def get_polizas():
+    polizas = Poliza.query.order_by(Poliza.creado_en.desc()).all()
+    res = []
+    for p in polizas:
+        d = {c.name: getattr(p, c.name) for c in p.__table__.columns}
+        d['id'] = str(p.id) # Para compatibilidad con Firebase ID
+        res.append(d)
+    return jsonify(res)
+
+@app.route('/api/polizas/<id>', methods=['GET'])
+def get_poliza(id):
+    p = Poliza.query.get(id)
+    if not p:
+        return jsonify({'message': 'No encontrado'}), 404
+    d = {c.name: getattr(p, c.name) for c in p.__table__.columns}
+    d['id'] = str(p.id)
+    return jsonify(d)
+
+@app.route('/api/polizas', methods=['POST'])
+def add_poliza():
+    data = request.json
+    user_email = data.pop('userEmail', 'unknown')
+    # Mapeo de campos CamelCase a snake_case si es necesario
+    # (El frontend envía los campos tal cual los definimos en el HTML)
+    
+    # Normalización de nombres de campos (frontend usa camelCase en algunos o nombres de IDs)
+    # Para simplicidad, asumo que el frontend enviará los nombres que coincidan con el modelo
+    # o los mapeamos manualmente.
+    
+    new_p = Poliza(
+        no_poliza=data.get('noPoliza'),
+        aseguradora=data.get('aseguradora'),
+        tipo_seguro=data.get('tipoSeguro'),
+        plan=data.get('plan'),
+        no_asesor=data.get('noAsesor'),
+        estatus_poliza=data.get('estatusPoliza'),
+        moneda=data.get('moneda'),
+        suma_asegurada=data.get('sumaAsegurada'),
+        fecha_emision=data.get('fechaEmision'),
+        inicio_poliza=data.get('inicioPoliza'),
+        fin_poliza=data.get('finPoliza'),
+        cobertura=data.get('cobertura'),
+        tipo_pago=data.get('tipoPago'),
+        modo_cobro=data.get('modoCobro'),
+        medio_cobro=data.get('medioCobro'),
+        no_token=data.get('noToken'),
+        prima_neta=data.get('primaNeta'),
+        prima_anual=data.get('primaAnual'),
+        prima_en_pesos=data.get('primaEnPesos'),
+        prima_en_dolares=data.get('primaEnDolares'),
+        prima_en_udis=data.get('primaEnUdis'),
+        nombre_contratante=data.get('nombreContratante'),
+        direccion_contratante=data.get('direccionContratante'),
+        telefono_contratante=data.get('telefonoContratante'),
+        correo_contratante=data.get('correoContratante'),
+        nombre_titular=data.get('nombreTitular'),
+        fecha_nac_titular=data.get('fechaNacTitular'),
+        asegurados_adicionales=data.get('aseguradosAdicionales'),
+        creado_por=user_email
+    )
+    db.session.add(new_p)
+    
+    # Historial
+    h = Historial(accion='Alta', detalle=f"Póliza {new_p.no_poliza}", usuario=user_email)
+    db.session.add(h)
+    
+    db.session.commit()
+    return jsonify({'success': True, 'id': str(new_p.id)})
+
+@app.route('/api/polizas/<id>', methods=['PUT'])
+def update_poliza(id):
+    p = Poliza.query.get(id)
+    if not p: return jsonify({'message': 'No encontrado'}), 404
+    data = request.json
+    user_email = data.pop('userEmail', 'unknown')
+    
+    p.no_poliza = data.get('noPoliza', p.no_poliza)
+    p.aseguradora = data.get('aseguradora', p.aseguradora)
+    p.tipo_seguro = data.get('tipoSeguro', p.tipo_seguro)
+    p.plan = data.get('plan', p.plan)
+    p.no_asesor = data.get('noAsesor', p.no_asesor)
+    p.estatus_poliza = data.get('estatusPoliza', p.estatus_poliza)
+    p.moneda = data.get('moneda', p.moneda)
+    p.suma_asegurada = data.get('sumaAsegurada', p.suma_asegurada)
+    p.fecha_emision = data.get('fechaEmision', p.fecha_emision)
+    p.inicio_poliza = data.get('inicioPoliza', p.inicio_poliza)
+    p.fin_poliza = data.get('finPoliza', p.fin_poliza)
+    p.cobertura = data.get('cobertura', p.cobertura)
+    p.tipo_pago = data.get('tipoPago', p.tipo_pago)
+    p.modo_cobro = data.get('modoCobro', p.modo_cobro)
+    p.medio_cobro = data.get('medioCobro', p.medio_cobro)
+    p.no_token = data.get('noToken', p.no_token)
+    p.prima_neta = data.get('primaNeta', p.prima_neta)
+    p.prima_anual = data.get('primaAnual', p.prima_anual)
+    p.prima_en_pesos = data.get('primaEnPesos', p.prima_en_pesos)
+    p.prima_en_dolares = data.get('primaEnDolares', p.prima_en_dolares)
+    p.prima_en_udis = data.get('primaEnUdis', p.prima_en_udis)
+    p.nombre_contratante = data.get('nombreContratante', p.nombre_contratante)
+    p.direccion_contratante = data.get('direccionContratante', p.direccion_contratante)
+    p.telefono_contratante = data.get('telefonoContratante', p.telefono_contratante)
+    p.correo_contratante = data.get('correoContratante', p.correo_contratante)
+    p.nombre_titular = data.get('nombreTitular', p.nombre_titular)
+    p.fecha_nac_titular = data.get('fechaNacTitular', p.fecha_nac_titular)
+    p.asegurados_adicionales = data.get('aseguradosAdicionales', p.asegurados_adicionales)
+
+    h = Historial(accion='Actualización', detalle=f"Póliza {p.no_poliza}", usuario=user_email)
+    db.session.add(h)
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/polizas/<id>', methods=['DELETE'])
+def delete_poliza(id):
+    p = Poliza.query.get(id)
+    if not p: return jsonify({'message': 'No encontrado'}), 404
+    user_email = request.args.get('userEmail', 'unknown')
+    
+    h = Historial(accion='Eliminación', detalle=f"Póliza {p.no_poliza}", usuario=user_email)
+    db.session.add(h)
+    
+    db.session.commit() # Guardar historial antes de borrar póliza si hay FK, pero aquí no hay.
+    db.session.delete(p)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/historial', methods=['GET'])
+def get_historial():
+    hist = Historial.query.order_by(Historial.fecha.desc()).all()
+    res = []
+    for h in hist:
+        res.append({
+            'id': h.id,
+            'accion': h.accion,
+            'detalle': h.detalle,
+            'usuario': h.usuario,
+            'fecha': h.fecha.isoformat()
+        })
+    return jsonify(res)
+
+@app.route('/api/usuarios', methods=['POST'])
+def add_usuario():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    nombre = data.get('nombre')
+    
+    if Usuario.query.filter_by(email=email).first():
+        return jsonify({'success': False, 'message': 'El correo ya está registrado'}), 400
+        
+    new_user = Usuario(nombre=nombre, email=email)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({'success': True})
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)

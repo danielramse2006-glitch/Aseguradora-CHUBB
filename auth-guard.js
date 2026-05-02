@@ -1,33 +1,37 @@
 // ============================================================
-//  auth-guard.js — importar en cada página protegida
+//  auth-guard.js — Versión PostgreSQL (API Flask)
 // ============================================================
-import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc,
-         query, orderBy, where, Timestamp, getDoc }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const API_BASE = ''; // Se usa ruta relativa si el HTML es servido por Flask
 
 export function requireAuth(cb) {
   const localRaw = sessionStorage.getItem('localUser');
   if (localRaw) {
     const localUser = JSON.parse(localRaw);
-    const fakeUser = { email: localUser.usuario, displayName: localUser.nombre, uid: 'local-admin', isLocal: true };
+    const fakeUser = { 
+        email: localUser.email, 
+        displayName: localUser.nombre, 
+        uid: 'pg-user', 
+        isLocal: true,
+        metadata: { lastSignInTime: new Date().toISOString() } 
+    };
+    
     const el = document.getElementById('currentUser');
-    if (el) { el.textContent = localUser.nombre; const av = document.getElementById('userAvatar'); if (av) av.textContent = localUser.nombre.charAt(0).toUpperCase(); }
+    if (el) { 
+        el.textContent = localUser.nombre; 
+        const av = document.getElementById('userAvatar'); 
+        if (av) av.textContent = localUser.nombre.charAt(0).toUpperCase(); 
+    }
     if (cb) cb(fakeUser);
     return;
   }
-  onAuthStateChanged(auth, user => {
-    if (!user) { window.location.href = 'login.html'; return; }
-    const el = document.getElementById('currentUser');
-    if (el) { const name = user.displayName || user.email.split('@')[0]; el.textContent = name; const av = document.getElementById('userAvatar'); if (av) av.textContent = name.charAt(0).toUpperCase(); }
-    if (cb) cb(user);
-  });
+  
+  // Si no hay sesión en sessionStorage, redirigir al login
+  window.location.href = 'login.html';
 }
 
 export async function logout() {
   sessionStorage.removeItem('localUser');
-  try { await signOut(auth); } catch(e) {}
   window.location.href = 'login.html';
 }
 
@@ -42,53 +46,55 @@ export function toast(msg, type = 'default') {
   setTimeout(() => el.remove(), 3500);
 }
 
-export const POLIZAS_COL  = 'polizas';
-export const HISTORIAL_COL = 'historial';
-// mantener compatibilidad
-export const POLIZAS  = 'polizas';
-export const HISTORIAL = 'historial';
+// --- FUNCIONES DE API (POSTGRESQL) ---
 
 export async function getPolizas() {
-  const q = query(collection(db, POLIZAS), orderBy('fechaEmision', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const res = await fetch(`${API_BASE}/api/polizas`);
+  return await res.json();
 }
 
 export async function getPoliza(id) {
-  const snap = await getDoc(doc(db, POLIZAS, id));
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  const res = await fetch(`${API_BASE}/api/polizas/${id}`);
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function addPoliza(data, userEmail) {
-  const ref = await addDoc(collection(db, POLIZAS), { ...data, creadoEn: Timestamp.now(), creadoPor: userEmail });
-  await registrarHistorial('Alta', `Póliza ${data.noPoliza}`, userEmail);
-  return ref.id;
+  const res = await fetch(`${API_BASE}/api/polizas`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...data, userEmail })
+  });
+  const result = await res.json();
+  return result.id;
 }
 
 export async function updatePoliza(id, data, userEmail) {
-  await updateDoc(doc(db, POLIZAS, id), { ...data, actualizadoEn: Timestamp.now(), actualizadoPor: userEmail });
-  await registrarHistorial('Actualización', `Póliza ${data.noPoliza}`, userEmail);
+  await fetch(`${API_BASE}/api/polizas/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...data, userEmail })
+  });
 }
 
 export async function deletePoliza(id, noPoliza, userEmail) {
-  await deleteDoc(doc(db, POLIZAS, id));
-  await registrarHistorial('Eliminación', `Póliza ${noPoliza}`, userEmail);
-}
-
-export async function registrarHistorial(accion, detalle, usuario) {
-  await addDoc(collection(db, HISTORIAL), { accion, detalle, usuario, fecha: Timestamp.now() });
+  await fetch(`${API_BASE}/api/polizas/${id}?userEmail=${userEmail}`, {
+    method: 'DELETE'
+  });
 }
 
 export async function getHistorial() {
-  const q = query(collection(db, HISTORIAL), orderBy('fecha', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const res = await fetch(`${API_BASE}/api/historial`);
+  return await res.json();
 }
+
+// --- UTILERÍAS ---
 
 export function formatDate(str) {
   if (!str) return '—';
-  const [y, m, d] = str.split('-');
-  if (!y || !m || !d) return str;
+  const parts = str.split('-');
+  if (parts.length !== 3) return str;
+  const [y, m, d] = parts;
   return `${d}-${m}-${y}`;
 }
 
@@ -140,7 +146,7 @@ export function calcAntig(fechaEmision) {
   return 'Menos de 1 mes';
 }
 
-// Catálogos
+// Catálogos (se mantienen igual)
 export const ASEGURADORAS   = ['Chubb','GNP','AXA','Mapfre','MetLife','Allianz','HDI','Qualitas','BBVA Seguros','Zurich','Monterrey New York Life','Seguros SURA','Insignia Life','Otros'];
 export const TIPOS_SEGURO   = ['Vida','Gastos Médicos Mayores','Auto','Casa/Hogar','Empresarial','Responsabilidad Civil','Accidentes Personales','Otros'];
 export const COBERTURAS     = ['Básica','Amplia','Plus','Premium','Personalizada','Conversión Garantizada','Deducible en Exceso','GMM','VPL','ORVI','Segubeca','Aliados Kids','PPR Plan Personal de Retiro'];
