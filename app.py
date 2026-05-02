@@ -113,24 +113,51 @@ def login():
         })
     return jsonify({'success': False, 'message': 'Credenciales incorrectas'}), 401
 
+def serialize_poliza(p):
+    return {
+        'id': str(p.id),
+        'noPoliza': p.no_poliza,
+        'aseguradora': p.aseguradora,
+        'tipoSeguro': p.tipo_seguro,
+        'plan': p.plan,
+        'noAsesor': p.no_asesor,
+        'estatusPoliza': p.estatus_poliza,
+        'moneda': p.moneda,
+        'sumaAsegurada': p.suma_asegurada,
+        'fechaEmision': p.fecha_emision,
+        'inicioPoliza': p.inicio_poliza,
+        'fin_poliza': p.fin_poliza,
+        'cobertura': p.cobertura,
+        'tipoPago': p.tipo_pago,
+        'modoCobro': p.modo_cobro,
+        'medioCobro': p.medio_cobro,
+        'noToken': p.no_token,
+        'primaNeta': p.prima_neta,
+        'primaAnual': p.prima_anual,
+        'primaEnPesos': p.prima_en_pesos,
+        'primaEnDolares': p.prima_en_dolares,
+        'primaEnUdis': p.prima_en_udis,
+        'nombreContratante': p.nombre_contratante,
+        'direccionContratante': p.direccion_contratante,
+        'telefonoContratante': p.telefono_contratante,
+        'correoContratante': p.correo_contratante,
+        'nombreTitular': p.nombre_titular,
+        'fechaNacTitular': p.fecha_nac_titular,
+        'aseguradosAdicionales': p.asegurados_adicionales,
+        'creadoPor': p.creado_por
+    }
+
 @app.route('/api/polizas', methods=['GET'])
 def get_polizas():
     polizas = Poliza.query.order_by(Poliza.creado_en.desc()).all()
-    res = []
-    for p in polizas:
-        d = {c.name: getattr(p, c.name) for c in p.__table__.columns}
-        d['id'] = str(p.id) # Para compatibilidad con Firebase ID
-        res.append(d)
-    return jsonify(res)
+    return jsonify([serialize_poliza(p) for p in polizas])
 
 @app.route('/api/polizas/<id>', methods=['GET'])
 def get_poliza(id):
     p = Poliza.query.get(id)
     if not p:
         return jsonify({'message': 'No encontrado'}), 404
-    d = {c.name: getattr(p, c.name) for c in p.__table__.columns}
-    d['id'] = str(p.id)
-    return jsonify(d)
+    return jsonify(serialize_poliza(p))
 
 @app.route('/api/polizas', methods=['POST'])
 def add_poliza():
@@ -273,6 +300,11 @@ def add_usuario():
 def seed_data():
     import random
     from datetime import date, timedelta
+    
+    # Borrar registros existentes como pidió el usuario
+    Poliza.query.delete()
+    Historial.query.delete()
+    db.session.commit()
     
     aseguradoras = ['Chubb','GNP','AXA','Mapfre','MetLife','Allianz','HDI','Qualitas']
     tipos = ['Vida','Gastos Médicos Mayores','Auto','Casa/Hogar','Empresarial']
