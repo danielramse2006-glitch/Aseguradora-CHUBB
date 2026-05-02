@@ -11,6 +11,7 @@ export function requireAuth(cb) {
     const fakeUser = { 
         email: localUser.email, 
         displayName: localUser.nombre, 
+        rol: localUser.rol || 'usuario',
         uid: 'pg-user', 
         isLocal: true,
         metadata: { lastSignInTime: new Date().toISOString() } 
@@ -22,6 +23,32 @@ export function requireAuth(cb) {
         const av = document.getElementById('userAvatar'); 
         if (av) av.textContent = localUser.nombre.charAt(0).toUpperCase(); 
     }
+
+    // Lógica de protección de interfaz por Rol
+    const isAdmin = localUser.rol === 'admin';
+    
+    // Ocultar sección de Administración si no es admin
+    const sidebarAdminSection = document.querySelector('.sidebar-section:nth-of-type(2)');
+    if (sidebarAdminSection && !isAdmin) {
+        // Buscamos todos los elementos de la sección admin
+        let next = sidebarAdminSection;
+        while (next) {
+            let current = next;
+            next = next.nextElementSibling;
+            if (current.classList.contains('sidebar-section') && current !== sidebarAdminSection) break;
+            if (!current.classList.contains('sidebar-footer')) {
+                current.style.display = 'none';
+            }
+        }
+    }
+
+    // Redirigir si intenta entrar a usuarios.html o historial.html sin ser admin
+    const page = window.location.pathname.split('/').pop();
+    if (['usuarios.html', 'historial.html'].includes(page) && !isAdmin) {
+        window.location.href = 'index.html';
+        return;
+    }
+
     if (cb) cb(fakeUser);
     return;
   }

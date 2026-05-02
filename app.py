@@ -34,6 +34,7 @@ class Usuario(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    rol = db.Column(db.String(20), default='usuario') # 'admin' o 'usuario'
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -89,7 +90,7 @@ with app.app_context():
     db.create_all()
     # Crear admin por defecto si no existe
     if not Usuario.query.filter_by(email='admin@chubb.com').first():
-        admin = Usuario(nombre='Administrador', email='admin@chubb.com')
+        admin = Usuario(nombre='Administrador', email='admin@chubb.com', rol='admin')
         admin.set_password('123456')
         db.session.add(admin)
         db.session.commit()
@@ -108,7 +109,8 @@ def login():
             'success': True,
             'user': {
                 'nombre': user.nombre,
-                'email': user.email
+                'email': user.email,
+                'rol': user.rol
             }
         })
     return jsonify({'success': False, 'message': 'Credenciales incorrectas'}), 401
@@ -286,11 +288,12 @@ def add_usuario():
     email = data.get('email')
     password = data.get('password')
     nombre = data.get('nombre')
+    rol = data.get('rol', 'usuario')
     
     if Usuario.query.filter_by(email=email).first():
         return jsonify({'success': False, 'message': 'El correo ya está registrado'}), 400
         
-    new_user = Usuario(nombre=nombre, email=email)
+    new_user = Usuario(nombre=nombre, email=email, rol=rol)
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
