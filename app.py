@@ -285,30 +285,52 @@ def seed_data():
     for i in range(20):
         # Fechas aleatorias
         hoy = date.today()
-        emision = hoy - timedelta(days=random.randint(1, 500))
+        emision = hoy - timedelta(days=random.randint(1, 1000))
         inicio = emision + timedelta(days=random.randint(0, 30))
         fin = inicio + timedelta(days=365)
+        nac_titular = date(random.randint(1960, 2005), random.randint(1, 12), random.randint(1, 28))
         
+        moneda_sel = random.choice(monedas)
+        p_neta = float(random.randint(5000, 50000))
+        p_anual = p_neta * 1.16 # Simulando IVA
+        
+        # Primas específicas según moneda
+        p_pesos = p_anual if moneda_sel == 'Peso' else p_anual * 20 if moneda_sel == 'Dólar' else p_anual * 8
+        p_dolares = p_anual if moneda_sel == 'Dólar' else p_anual / 20
+        p_udis = p_anual if moneda_sel == 'UDI' else p_anual / 8
+
         poliza = Poliza(
-            no_poliza=f"POL-{random.randint(10000, 99999)}",
+            no_poliza=f"CHB-{random.randint(1000, 9999)}-{random.choice(['A','B','C'])}",
             aseguradora=random.choice(aseguradoras),
             tipo_seguro=random.choice(tipos),
-            plan='Estándar',
+            plan=random.choice(['INTEGRO','Básico','Premium','Plus']),
             no_asesor=str(random.randint(100000, 999999)),
             estatus_poliza=random.choice(estatus),
-            moneda=random.choice(monedas),
-            suma_asegurada=float(random.randint(100000, 5000000)),
+            moneda=moneda_sel,
+            suma_asegurada=float(random.randint(500000, 10000000)),
             fecha_emision=emision.isoformat(),
             inicio_poliza=inicio.isoformat(),
             fin_poliza=fin.isoformat(),
-            cobertura='Amplia',
-            tipo_pago=random.choice(['Anual', 'Semestral', 'Mensual']),
-            modo_cobro='Cargo Automático',
-            medio_cobro='Banco',
-            prima_neta=float(random.randint(5000, 50000)),
-            prima_anual=float(random.randint(6000, 60000)),
+            cobertura=random.choice(['Básica','Amplia','Plus','Premium']),
+            tipo_pago=random.choice(['Anual', 'Semestral', 'Trimestral', 'Mensual']),
+            modo_cobro=random.choice(['Cargo Automático','Modo Agente']),
+            medio_cobro=random.choice(['Banco','Agente','Domiciliación']),
+            no_token=f"TK-{random.randint(1000,9999)}-{random.randint(10,99)}",
+            prima_neta=p_neta,
+            prima_anual=p_anual,
+            prima_en_pesos=p_pesos,
+            prima_en_dolares=p_dolares,
+            prima_en_udis=p_udis,
             nombre_contratante=random.choice(nombres),
+            direccion_contratante=f"Av. Siempre Viva {random.randint(100,999)}, Col. Centro, Monterrey",
+            telefono_contratante=f"81{random.randint(10000000, 99999999)}",
+            correo_contratante=f"cliente{random.randint(1,100)}@ejemplo.com",
             nombre_titular=random.choice(nombres),
+            fecha_nac_titular=nac_titular.isoformat(),
+            asegurados_adicionales=[
+                {"nombre": f"Familiar {random.randint(1,5)}", "fechaNac": "1990-05-15"},
+                {"nombre": f"Familiar {random.randint(6,9)}", "fechaNac": "2015-10-20"}
+            ],
             creado_por='admin@chubb.com'
         )
         db.session.add(poliza)
