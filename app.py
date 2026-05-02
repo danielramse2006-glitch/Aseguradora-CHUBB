@@ -88,6 +88,16 @@ class Historial(db.Model):
 # Crear tablas
 with app.app_context():
     db.create_all()
+    
+    # Migración manual para añadir la columna 'rol' si la tabla ya existe
+    try:
+        from sqlalchemy import text
+        db.session.execute(text('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(20) DEFAULT \'usuario\''))
+        db.session.commit()
+    except Exception as e:
+        print(f"Nota: La columna rol ya existe o hubo un error: {e}")
+        db.session.rollback()
+
     # Crear admin por defecto si no existe
     if not Usuario.query.filter_by(email='admin@chubb.com').first():
         admin = Usuario(nombre='Administrador', email='admin@chubb.com', rol='admin')
