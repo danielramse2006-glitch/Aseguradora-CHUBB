@@ -269,6 +269,53 @@ def add_usuario():
     db.session.commit()
     return jsonify({'success': True})
 
+@app.route('/api/seed', methods=['GET'])
+def seed_data():
+    import random
+    from datetime import date, timedelta
+    
+    aseguradoras = ['Chubb','GNP','AXA','Mapfre','MetLife','Allianz','HDI','Qualitas']
+    tipos = ['Vida','Gastos Médicos Mayores','Auto','Casa/Hogar','Empresarial']
+    estatus = ['En Vigencia','Pendiente de Pago','Pagada','Cancelada']
+    monedas = ['Peso','Dólar','UDI']
+    
+    nombres = ['Juan Pérez', 'María García', 'Carlos Rodríguez', 'Ana Martínez', 'Luis Hernández', 
+               'Elena Gómez', 'Roberto Díaz', 'Sofía López', 'Diego Sánchez', 'Lucía Torres']
+
+    for i in range(20):
+        # Fechas aleatorias
+        hoy = date.today()
+        emision = hoy - timedelta(days=random.randint(1, 500))
+        inicio = emision + timedelta(days=random.randint(0, 30))
+        fin = inicio + timedelta(days=365)
+        
+        poliza = Poliza(
+            no_poliza=f"POL-{random.randint(10000, 99999)}",
+            aseguradora=random.choice(aseguradoras),
+            tipo_seguro=random.choice(tipos),
+            plan='Estándar',
+            no_asesor=str(random.randint(100000, 999999)),
+            estatus_poliza=random.choice(estatus),
+            moneda=random.choice(monedas),
+            suma_asegurada=float(random.randint(100000, 5000000)),
+            fecha_emision=emision.isoformat(),
+            inicio_poliza=inicio.isoformat(),
+            fin_poliza=fin.isoformat(),
+            cobertura='Amplia',
+            tipo_pago=random.choice(['Anual', 'Semestral', 'Mensual']),
+            modo_cobro='Cargo Automático',
+            medio_cobro='Banco',
+            prima_neta=float(random.randint(5000, 50000)),
+            prima_anual=float(random.randint(6000, 60000)),
+            nombre_contratante=random.choice(nombres),
+            nombre_titular=random.choice(nombres),
+            creado_por='admin@chubb.com'
+        )
+        db.session.add(poliza)
+        
+    db.session.commit()
+    return jsonify({'success': True, 'message': '20 registros aleatorios creados'})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
