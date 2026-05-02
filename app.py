@@ -367,6 +367,16 @@ def seed_data():
         )
         db.session.add(poliza)
         
+    # Agregar algunos registros de historial de prueba
+    for i in range(5):
+        h = Historial(
+            accion=random.choice(['Alta', 'Actualización']),
+            detalle=f"Actividad de prueba {i+1}",
+            usuario='admin@chubb.com',
+            fecha=datetime.utcnow() - timedelta(hours=random.randint(1, 48))
+        )
+        db.session.add(h)
+        
     db.session.commit()
     return jsonify({'success': True, 'message': '20 registros aleatorios creados'})
 
