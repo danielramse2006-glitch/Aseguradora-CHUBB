@@ -25,20 +25,19 @@ export function requireAuth(cb) {
     }
 
     // Lógica de protección de interfaz por Rol
-    const isAdmin = localUser.rol === 'admin';
+    const isAdmin = (localUser.rol === 'admin');
     
     // Ocultar sección de Administración si no es admin
-    const sidebarAdminSection = document.querySelector('.sidebar-section:nth-of-type(2)');
-    if (sidebarAdminSection && !isAdmin) {
-        // Buscamos todos los elementos de la sección admin
-        let next = sidebarAdminSection;
-        while (next) {
-            let current = next;
-            next = next.nextElementSibling;
-            if (current.classList.contains('sidebar-section') && current !== sidebarAdminSection) break;
-            if (!current.classList.contains('sidebar-footer')) {
-                current.style.display = 'none';
-            }
+    const sections = Array.from(document.querySelectorAll('.sidebar-section'));
+    const adminSection = sections.find(s => s.textContent.includes('Administración'));
+
+    if (adminSection && !isAdmin) {
+        let el = adminSection;
+        while (el && !el.classList.contains('sidebar-footer')) {
+            let next = el.nextElementSibling;
+            el.style.display = 'none';
+            if (next && next.classList.contains('sidebar-section')) break;
+            el = next;
         }
     }
 
