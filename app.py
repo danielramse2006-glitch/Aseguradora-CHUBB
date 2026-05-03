@@ -317,6 +317,13 @@ def seed_data():
     # Borrar registros existentes como pidió el usuario
     Poliza.query.delete()
     Historial.query.delete()
+    Usuario.query.delete() # Borrar todos los usuarios
+    db.session.commit()
+    
+    # Recrear el administrador con todos los permisos
+    admin = Usuario(nombre='Administrador', email='admin@chubb.com', rol='admin')
+    admin.set_password('123456')
+    db.session.add(admin)
     db.session.commit()
     
     aseguradoras = ['Chubb','GNP','AXA','Mapfre','MetLife','Allianz','HDI','Qualitas']
